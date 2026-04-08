@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Blocker Control Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status-display {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .status-value {
+            color: #333;
+            font-weight: 700;
+            font-size: 14px;
+            word-break: break-all;
+            text-align: right;
+        }
+
+        .current-status {
+            font-size: 18px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .status-blocked {
+            background: #ffe0e0;
+            color: #c92a2a;
+        }
+
+        .status-unblocked {
+            background: #d3f9d8;
+            color: #2b8a3e;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-block {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-block:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-unblock {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-unblock:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-refresh {
+            background: #6c757d;
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .btn-refresh:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .message {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .message.active {
+            display: block;
+        }
+
+        .message.success {
+            background: #d3f9d8;
+            color: #2b8a3e;
+            border-left: 4px solid #51cf66;
+        }
+
+        .message.error {
+            background: #ffe0e0;
+            color: #c92a2a;
+            border-left: 4px solid #ff8787;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-top: 20px;
+        }
+
+        .settings {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .setting-item {
+            margin-bottom: 15px;
+        }
+
+        .setting-label {
+            display: block;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: monospace;
+        }
+
+        .setting-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .api-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .api-section h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .api-section code {
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            display: block;
+            margin: 8px 0;
+            word-break: break-all;
+            border-left: 3px solid #667eea;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .btn {
+                padding: 12px 15px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 Site Blocker</h1>
+            <p>Remote Control Dashboard</p>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div class="status-display">
+            <div class="status-item">
+                <span class="status-label">Current Status:</span>
+                <span class="status-value" id="statusValue">Loading...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Website:</span>
+                <span class="status-value" id="websiteValue">Loading...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Last Updated:</span>
+                <span class="status-value" id="updatedValue">Never</span>
+            </div>
+            <div id="currentStatus" class="current-status" style="display:none;"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-block" id="blockBtn" onclick="sendCommand('BLOCK')">
+                🚫 Block
+            </button>
+            <button class="btn btn-unblock" id="unblockBtn" onclick="sendCommand('UNBLOCK')">
+                ✅ Unblock
+            </button>
+            <button class="btn btn-refresh" id="refreshBtn" onclick="loadStatus()">
+                🔄 Refresh Status
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <span class="spinner"></span>
+            <span>Processing...</span>
+        </div>
+
+        <div class="settings">
+            <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">⚙️ Configuration</h3>
+            
+            <div class="setting-item">
+                <label class="setting-label">GitHub Repository (owner/repo):</label>
+                <input type="text" class="setting-input" id="repoInput" placeholder="e.g., yourname/site-blocker" value="">
+            </div>
+
+            <div class="setting-item">
+                <label class="setting-label">GitHub Token (Personal Access Token):</label>
+                <input type="password" class="setting-input" id="tokenInput" placeholder="Enter your GitHub token">
+            </div>
+
+            <div class="setting-item">
+                <label class="setting-label">Website to Block:</label>
+                <input type="text" class="setting-input" id="siteInput" placeholder="e.g., irctc.co.in" value="irctc.co.in">
+            </div>
+
+            <div class="api-section">
+                <h3>API Information</h3>
+                <p><strong>Config Endpoint:</strong></p>
+                <code id="configUrl">https://raw.githubusercontent.com/[owner]/[repo]/main/config.json</code>
+                
+                <p style="margin-top: 10px;"><strong>Expected config.json format:</strong></p>
+                <code>{"status": "BLOCK", "site": "irctc.co.in"}</code>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>💡 Ensure config.json exists in your GitHub repository with proper format.</p>
+            <p style="margin-top: 5px;">⚡ Real-time blocking/unblocking via GitHub API.</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Load from localStorage
+        const CONFIG_KEY = 'site_blocker_config';
+        
+        function loadConfig() {
+            const savedConfig = localStorage.getItem(CONFIG_KEY);
+            if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                document.getElementById('repoInput').value = config.repo || '';
+                document.getElementById('tokenInput').value = config.token || '';
+                document.getElementById('siteInput').value = config.site || 'irctc.co.in';
+                updateApiDisplay();
+            }
+        }
+
+        function saveConfig() {
+            const config = {
+                repo: document.getElementById('repoInput').value,
+                token: document.getElementById('tokenInput').value,
+                site: document.getElementById('siteInput').value
+            };
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+            updateApiDisplay();
+        }
+
+        function updateApiDisplay() {
+            const repo = document.getElementById('repoInput').value;
+            if (repo) {
+                document.getElementById('configUrl').textContent = 
+                    `https://raw.githubusercontent.com/${repo}/main/config.json`;
+            }
+        }
+
+        // Attach change listeners
+        document.getElementById('repoInput').addEventListener('change', saveConfig);
+        document.getElementById('tokenInput').addEventListener('change', saveConfig);
+        document.getElementById('siteInput').addEventListener('change', saveConfig);
+
+        // Show message
+        function showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = text;
+            msgDiv.className = `message active ${type}`;
+            setTimeout(() => {
+                msgDiv.classList.remove('active');
+            }, 5000);
+        }
+
+        // Load current status
+        async function loadStatus() {
+            const repo = document.getElementById('repoInput').value;
+            if (!repo) {
+                showMessage('Please enter your GitHub repository (owner/repo)', 'error');
+                return;
+            }
+
+            const configUrl = `https://raw.githubusercontent.com/${repo}/main/config.json`;
+            
+            try {
+                const response = await fetch(configUrl);
+                if (response.ok) {
+                    const data = await response.json();
+                    const status = data.status || 'UNKNOWN';
+                    
+                    document.getElementById('statusValue').textContent = status;
+                    document.getElementById('websiteValue').textContent = data.site || 'irctc.co.in';
+                    document.getElementById('updatedValue').textContent = new Date().toLocaleTimeString();
+                    
+                    // Update status display
+                    const statusDiv = document.getElementById('currentStatus');
+                    statusDiv.textContent = status === 'BLOCK' ? '🚫 BLOCKED' : '✅ UNBLOCKED';
+                    statusDiv.className = `current-status status-${status === 'BLOCK' ? 'blocked' : 'unblocked'}`;
+                    statusDiv.style.display = 'block';
+                } else {
+                    showMessage('Could not load config. Check repository URL.', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Send command
+        async function sendCommand(command) {
+            const repo = document.getElementById('repoInput').value;
+            const token = document.getElementById('tokenInput').value;
+            const site = document.getElementById('siteInput').value;
+
+            if (!repo || !token) {
+                showMessage('Please configure repository and token first', 'error');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            loading.classList.add('active');
+            
+            try {
+                // Prepare the config update
+                const configData = {
+                    status: command,
+                    site: site,
+                    timestamp: new Date().toISOString()
+                };
+
+                // Get current SHA (needed for GitHub API)
+                const configUrl = `https://api.github.com/repos/${repo}/contents/config.json`;
+                
+                const getResponse = await fetch(configUrl, {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (!getResponse.ok) {
+                    showMessage(`Repository not found or token invalid`, 'error');
+                    loading.classList.remove('active');
+                    return;
+                }
+
+                const fileData = await getResponse.json();
+                const sha = fileData.sha;
+
+                // Update the file
+                const updateResponse = await fetch(configUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `${command} triggered from dashboard`,
+                        content: btoa(JSON.stringify(configData, null, 2)),
+                        sha: sha
+                    })
+                });
+
+                if (updateResponse.ok) {
+                    showMessage(`✅ Command sent: ${command}`, 'success');
+                    setTimeout(loadStatus, 2000);
+                } else {
+                    showMessage(`Failed to update config: ${updateResponse.status}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // Initialize
+        loadConfig();
+        // Optional: Auto-load status on page load
+        // loadStatus();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadStatus, 30000);
+    </script>
+</body>
+</html>
