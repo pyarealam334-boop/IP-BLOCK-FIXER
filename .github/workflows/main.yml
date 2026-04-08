@@ -1,0 +1,63 @@
+name: Update Site Blocker Config
+
+on:
+  workflow_dispatch:
+    inputs:
+      status:
+        description: 'Block or Unblock'
+        required: true
+        default: 'BLOCK'
+        type: choice
+        options:
+          - BLOCK
+          - UNBLOCK
+      site:
+        description: 'Website to block (e.g., irctc.co.in)'
+        required: false
+        default: 'irctc.co.in'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update-config:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Update config.json
+        run: |
+          # Create the config directory if it doesn't exist
+          mkdir -p .
+          
+          # Create or update config.json
+          cat > config.json << 'EOF'
+          {
+            "status": "${{ github.event.inputs.status }}",
+            "site": "${{ github.event.inputs.site }}",
+            "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "triggered_by": "${{ github.actor }}"
+          }
+          EOF
+          
+          cat config.json
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add config.json
+          git commit -m "Update config: ${{ github.event.inputs.status }} - ${{ github.event.inputs.site }}" || echo "No changes to commit"
+          git push
+
+      - name: Log update
+        run: |
+          echo "✅ Configuration updated"
+          echo "Status: ${{ github.event.inputs.status }}"
+          echo "Site: ${{ github.event.inputs.site }}"
+          echo "Time: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
